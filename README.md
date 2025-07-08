@@ -47,13 +47,13 @@ Detroit911Calls-ResearchProject/
 │   └── data_import_process.md          # Documentation of raw data loading
 ├── Initial Attempts/                   # Early SQLite exploration
 │   └── initial_sqlite_attempt.sql      # SQLite-specific ETL notes
-├── MySQL/                              # Production MySQL pipelines
-│   ├── 01_schema_definition.sql
-│   ├── 02_data_cleaning_and_enrichment.sql
-│   ├── 03_data_modeling.sql
-│   └── 04_analysis_queries.sql         # Analytical queries and reports
+├──MySQL/
+│   ├── 01_schema_definition.sql             # Table creation
+│   ├── 02_data_cleaning_and_enrichment.sql  # Data transformation only
+│   ├── 03_data_modeling.sql                 # Specialized tables
+│   └── 04_analysis_queries.sql              # Analysis and pattern queries ✨
 ├── R/                                  # R scripts for future visualizations
-│   └── (e.g., 01_eda_and_viz.Rmd)
+│   └── (e.g., 911Calls.Rmd)
 ├── .gitignore                          # Git ignore rules
 └── README.md                           # Project overview and guide
 ```
