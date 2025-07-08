@@ -1,43 +1,23 @@
--- File: 02_data_cleaning_and_enrichment.sql
--- Project: Detroit 911 Call Data Analysis (2018-2025)
+-- Detroit 911 Call Data Analysis (2018-2025)
+-- Data Cleaning and Enrichment Script
 -- Author: Raameen Ahmed
 -- Date: June 29, 2025
 
--- Purpose: This script performs essential data cleaning, transformation, and
---          enrichment on the 'all_calls_staging' table. It extracts the year
---          from timestamps and creates a new, more descriptive category column.
+-- Performs data transformation and enrichment on the staging table
+-- Extracts year from timestamps and creates human-readable category descriptions
 
--- Note: This script assumes that the 'all_calls_staging' table has already been
---       created and populated with raw data (e.g., via TablePlus import),
---       as defined in '01_schema_definition.sql'.
+-- IMPORTANT: Replace 'your_database_name' with your actual database name
+USE your_database_name;
 
--- Ensure the target database is selected
-USE your_database_name; -- IMPORTANT: Replace 'your_database_name' with the actual name of your MySQL database
-
--- Section 1: Extract and Populate 'year' Column
--- This UPDATE statement extracts the year from the 'called_at' timestamp string.
--- STR_TO_DATE converts the initial part of the timestamp (first 19 characters)
--- into a datetime format, from which the YEAR() function then extracts the year.
--- This creates a dedicated numerical 'year' column for temporal analysis.
+-- Extract year from timestamp for temporal analysis
 UPDATE all_calls_staging
 SET `year` = YEAR(STR_TO_DATE(LEFT(called_at, 19), '%Y/%m/%d %H:%i:%s'));
 
-
--- Section 2: Add and Populate 'clear_description' Column
--- This section adds a new column 'clear_description' to provide more
--- human-readable and standardized incident categories. It then populates
--- this column by mapping the abbreviated 'category' codes to full,
--- descriptive phrases using a comprehensive CASE statement.
--- TRIM() is used on 'category' to ensure no leading/trailing spaces affect matches.
-
--- Add the new column 'clear_description' to the table.
+-- Add clear_description column for human-readable categories
 ALTER TABLE all_calls_staging
 ADD COLUMN clear_description TEXT;
 
--- Populate the 'clear_description' column based on the 'category' field.
--- Each WHEN clause maps a specific abbreviated category code to its full description.
--- If a category does not match any specified WHEN clause, the 'clear_description'
--- for that row will be set to NULL (or another default if an ELSE clause is added).
+-- Map abbreviated category codes to full descriptions
 UPDATE all_calls_staging SET clear_description =
 CASE TRIM(category)
     WHEN 'SHOTS IP' THEN 'Shots Fired, In Progress'
@@ -187,3 +167,40 @@ CASE TRIM(category)
     WHEN 'SHOTSPT' THEN 'Gunshot detection system alert'
     ELSE NULL
 END;
+
+-- Remove clear_description column from mostShootingLocations table
+ALTER TABLE mostShootingLocations
+  DROP COLUMN clear_description;
+
+SELECT
+    zip_code,
+    COUNT(*) AS numbers
+FROM
+    all_calls_staging
+GROUP BY
+    zip_code
+ORDER BY
+    numbers DESC;
+
+
+SELECT
+    clear_description,
+    COUNT(*) AS numbers
+FROM
+    all_calls_staging
+GROUP BY
+    clear_description
+ORDER BY
+    numbers DESC;
+
+SELECT
+    clear_description,
+    year,
+    COUNT(*) AS numbers
+FROM
+    all_calls_staging
+GROUP BY
+    clear_description,
+    year
+ORDER BY
+    numbers DESC;
