@@ -1,11 +1,31 @@
-# Detroit 911 Call Data Analysis (2018-2025)
+# Detroit 911 Calls Research Project
 
-🎯 **Project Overview**  
-This project transforms over **2 million** raw 911 call records from the Detroit Open Data Portal (2018-2025) into actionable intelligence. It demonstrates a complete data pipeline, from scalable data ingestion and robust database design to meticulous data cleaning and preparing for powerful statistical visualizations. The ultimate goal is to uncover critical trends in public safety, crime patterns, and emergency response dynamics within Metro Detroit.
+A comprehensive end-to-end data pipeline and analysis of Detroit 911 call records (2018–2025), transforming over 2 million raw calls into insightful, exportable tables and interactive visualizations.
 
 ---
 
-✨ **Key Features & Highlights**  
+## ♡ Project Overview
+
+1. **Data Ingestion**: Raw CSVs from Detroit Open Data Portal loaded into MySQL staging table (`all_calls_staging`).  
+2. **Schema Definition**: Robust schema to accommodate noisy text fields and timestamps (see `01_schema_definition.sql`).  
+3. **Data Cleaning & Enrichment**: Extract year, standardize call types, map numeric codes to descriptive labels (`02_data_cleaning_and_enrichment.sql`).  
+4. **Specialized Modeling**: Generate "baby tables" optimized for specific slices (top locations, call types by area, etc.) via `03_data_modeling.sql`.  
+5. **CSV Exports**: Use MySQL `SELECT … INTO OUTFILE` within `secure_file_priv` to dump summary tables for downstream analysis.  
+6. **Visualizations & Dashboard**: (Next steps) Produce charts (time-series, geographic maps) and assemble into a Shiny/Dash dashboard or HTML report.
+
+---
+
+## ♡ Tech Stack
+
+- **Database**: MySQL 8.0+ (secure_file_priv export)  
+- **SQL Scripting**: Schema, cleaning, modeling in modular `.sql` files  
+- **Visualization**: R (ggplot2, dplyr)
+- **Version Control**: GitHub (with CI for ETL automation)
+
+---
+
+## ♡ Key Features & Highlights
+
 - **Massive Data Management**: Engineered solutions to efficiently handle and process 2M+ records, showcasing scalable data handling.  
 - **Structured Database Design**: Developed a centralized MySQL database, optimizing for complex queries and high-volume data storage.  
 - **Advanced Data Preparation**: Implemented intricate SQL logic for data cleansing, standardization, and feature engineering (e.g., year extraction, clear_description mapping).  
@@ -14,68 +34,38 @@ This project transforms over **2 million** raw 911 call records from the Detroit
 
 ---
 
-🛠️ **Technical Stack**  
-This project leverages industry-standard tools and technologies:  
-- **Database Systems**: MySQL (Primary), SQLite (Exploration)  
-- **Database Client**: TablePlus  
-- **Data Languages**: SQL, R (dplyr, ggplot2), Python (Future Plans)  
-- **Development Tools**: VS Code, Cursor, R Studio, SQLTools  
-- **Version Control**: Git, GitHub
+## ♡ Repository Structure
 
----
-
-📂 **Project Structure**  
-```plaintext
+```text
 Detroit911Calls-ResearchProject/
-├── mysql/                            # SQL scripts for MySQL database operations
-│   ├── 01_schema_definition.sql      # Defines main 'all_calls_staging' table structure.
-│   ├── 02_data_cleaning_and_enrichment.sql # Data transformation and enrichment scripts.
-│   └── 03_specialized_tables.sql     # SQL for creating specialized analytical tables.
-├── sqlite_experiments/               # Documents initial exploration and setup attempts using SQLite.
-│   └── initial_sqlite_attempt.sql    # SQLite-specific commands and notes.
-├── r_scripts/                        # R scripts for data analysis and visualization (content to be added).
-│   └── (e.g., 01_eda_and_viz.Rmd)
-├── data_import_process.md            # Detailed documentation of data acquisition and import steps.
-├── .gitignore                        # Specifies files to be ignored by Git.
-└── README.md                         # Project overview and guide.
+├── Data Import/Export Process/
+│   ├── Specialized Tables/             # Exported CSV summaries
+│   │   ├── 911CallLocations.csv
+│   │   ├── mostCallTypesLocations.csv
+│   │   └── mostShootingLocations.csv
+│   ├── data_export_process.sql         # SQL scripts for CSV exports
+│   └── data_import_process.md          # Documentation of raw data loading
+├── Initial Attempts/                   # Early SQLite exploration
+│   └── initial_sqlite_attempt.sql      # SQLite-specific ETL notes
+├──MySQL/
+│   ├── 01_schema_definition.sql             # Table creation
+│   ├── 02_data_cleaning_and_enrichment.sql  # Data transformation only
+│   ├── 03_data_modeling.sql                 # Specialized tables
+│   └── 04_analysis_queries.sql              # Analysis and pattern queries ✨
+├── R/                                  # R scripts for future visualizations
+│   └── (e.g., 911Calls.Rmd)
+├── .gitignore                          # Git ignore rules
+└── README.md                           # Project overview and guide
 ```
----
-
-📊 **Data Source & Acquisition**
-
-This project's foundation is public 911 call data (2018-2025) from the Detroit Open Data Portal.  
-
-**Primary Data Source**: Detroit Open Data Portal  
-Note: Specific dataset links may require searching for "911 Calls for Service" on the portal.
-
-**Efficient Data Ingestion Workflow**:  
-Given substantial raw CSV file sizes and initial direct MySQL import challenges, the TablePlus GUI client was instrumental. It efficiently imported each yearly CSV directly into the consolidated `all_calls_staging` table in MySQL. TablePlus's wizard automated schema detection and seamless record consolidation.
-
-For a comprehensive, step-by-step guide to the data acquisition and import process, refer to:  
-👉 `data_import_process.md`
 
 ---
 
-🗄️ **Database Design & Transformation Workflow (ETL/ELT)**  
-The project employs a structured data transformation pipeline:  
+## ♡ Key Deliverables
 
-1. **Schema Definition** (`mysql/01_schema_definition.sql`): Establishes `all_calls_staging` table, using TEXT for initial columns to handle data inconsistencies robustly.  
-
-2. **Data Cleaning & Enrichment** (`mysql/02_data_cleaning_and_enrichment.sql`):  
-   - Extracts year from timestamps for robust temporal analysis.  
-   - Maps cryptic category codes to `clear_description` for enhanced data interpretability.  
-
-3. **Specialized Data Modeling** (`mysql/03_specialized_tables.sql`): Creates targeted "baby tables" from `all_calls_staging`, optimized for specific analytical questions (e.g., crime type breakdowns, average response times).
-
+- **`911CallLocations`**: Top 50 locations in Wayne County with the most 911 calls
+- **`mostShootingLocations`**: Top 50 locations with the most shooting 911 calls
+- **`mostCallTypesLocations`**: Top 50 locations sorted by types of calls
+  
 ---
 
-📈 **Analysis & Visualization (Next Steps)**  
-1. **Create Specialized Tables**: Run `mysql/03_specialized_tables.sql` to generate focused subsets (e.g., `drug_overdose`, `fire_calls`) from `all_calls_staging`.  
-2. **Export to CSV**: Use `SELECT * FROM <specialized_table>` with `INTO OUTFILE` (MySQL) or `sqlite3` CSV mode to dump each subset to `data/clean/<table_name>.csv`.  
-3. **Load into R**: In RStudio, read each CSV with `readr::read_csv()` and combine as needed.  
-4. **Exploratory Data Analysis**: Apply `dplyr` for summary statistics and `ggplot2` for visualizations (time series, category comparisons, response-time distributions).  
-5. **Iterate & Refine**: Based on initial plots, refine SQL filters or R transformations to highlight emerging trends.  
-
----
-
-*Last updated: 2025-06-29*  
+*Authored by Raameen Ahmed | University of Michigan–Dearborn*  
