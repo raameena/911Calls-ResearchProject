@@ -57,3 +57,7 @@ GROUP BY
     clear_description
 ORDER BY
     numbers DESC;
+
+-- Remove clear_description column from mostShootingLocations table
+ALTER TABLE mostShootingLocations
+  DROP COLUMN clear_description;
