@@ -167,3 +167,19 @@ CASE TRIM(category)
     WHEN 'SHOTSPT' THEN 'Gunshot detection system alert'
     ELSE NULL
 END;
+
+RENAME TABLE census TO 2022_census;
+
+START TRANSACTION;
+ALTER TABLE 2022_census
+ADD COLUMN temp_id INT PRIMARY KEY AUTO_INCREMENT;
+-- PRIMARY KEY: makes each element unique
+-- AUTO_INCREMENT: goes up 1 automatically
+
+-- Selecting Race section of 2022 census/2023 census
+SELECT * FROM `2022_census` WHERE temp_ID >= 34;
+SELECT * FROM `2023_census` WHERE temp_ID >= 34;
+
+-- Deleting Race section of 2022 census/2023 census
+DELETE FROM `2022_census` WHERE temp_ID >= 34;
+DELETE FROM `2023_census` WHERE temp_ID >= 34;

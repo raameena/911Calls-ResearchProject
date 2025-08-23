@@ -25,3 +25,26 @@ CREATE TABLE all_calls_staging (
     precinct TEXT,                -- Police precinct
     year INT                      -- Extracted year for temporal analysis
 );
+
+CREATE TABLE 2022_census (
+    category TEXT,
+    population_estimate TEXT,
+    population_MOE TEXT,
+    percent_population TEXT,
+    percent_MOE TEXT
+);
+CREATE TABLE 2023_census (
+    category TEXT,
+    population_estimate TEXT,
+    population_MOE TEXT,
+    percent_population TEXT,
+    percent_MOE TEXT
+);
+
+-- Organize my database
+RENAME TABLE `2022_census` TO `census_2022`;
+RENAME TABLE `2023_census` TO `census_2023`;
+RENAME TABLE `mostCallTypesLocations` TO `spec_mostCallTypesLocations`;
+RENAME TABLE `mostShootingLocations` TO `spec_mostShootingLocations`;
+RENAME TABLE `911CallLocations` TO `spec_911CallLocations`;
+RENAME TABLE `zipCodeCounts` TO `spec_zipcodeCounts`;

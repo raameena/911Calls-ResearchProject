@@ -50,3 +50,14 @@ GROUP BY
 ORDER BY
     am_calls DESC
 LIMIT 50;
+
+-- year count --
+SELECT
+    year,
+    COUNT(*) AS am_calls
+FROM
+    all_calls_staging
+GROUP BY
+    year
+ORDER BY
+    year DESC;

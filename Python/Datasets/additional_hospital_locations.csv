@@ -1,0 +1,9 @@
+﻿CCN,Hospital Name,Street Address,City,State,Zip Code,Telephone Number,Hospital Type,Effective Date of Certification,full_address,latitude,longitude
+NEW001,Karmanos Cancer Center,4100 John R St,DETROIT,MI,48201,,Specialized,,"4100 John R St, DETROIT, MI 48201",,
+NEW002,Kresge Eye Institute,4717 John R St,DETROIT,MI,48201,,Specialized,,"4717 John R St, DETROIT, MI 48201",,
+NEW003,Select Specialty Hospital-Northwest Detroit,6071 W Outer Dr,DETROIT,MI,48235,,Long Term,,"6071 W Outer Dr, DETROIT, MI 48235",,
+NEW004,Henry Ford St. John Hospital,22101 Moross Rd,DETROIT,MI,48236,,Short Term,,"22101 Moross Rd, DETROIT, MI 48236",,
+NEW005,Select Specialty Hospital-Downriver,10000 Telegraph Rd,TAYLOR,MI,48180,,Long Term,,"10000 Telegraph Rd, TAYLOR, MI 48180",,
+NEW006,Apex Medical Center,33333 Ford Rd,WESTLAND,MI,48185,,Short Term,,"33333 Ford Rd, WESTLAND, MI 48185",,
+NEW007,Henry Ford Cottage Hospital,159 Kercheval Ave,GROSSE POINTE FARMS,MI,48236,,ER Only,,"159 Kercheval Ave, GROSSE POINTE FARMS, MI 48236",,
+NEW008,Select Specialty Hospital-Grosse Pointe,468 Cadieux Rd,GROSSE POINTE,MI,48230,,Long Term,,"468 Cadieux Rd, GROSSE POINTE, MI 48230",,

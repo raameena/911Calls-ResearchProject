@@ -1,0 +1,632 @@
+---
+title: "Hospital Locations"
+author: "Raameen Ahmed, Zain Ahmed, Mustafa Nasir"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# 911 Calls Analysis
+
+**Inquiry:** Is there a statistical spatial correlation between the 911 call density ( from 2018-2025 ) and proximity to hospitals in Wayne County, MI?
+
+**Null Hypothesis:** There is no statistically significant spacial correlation between hospital locations and 911 call density
+
+**Hypothesis 1:** There is a positive statistical significanct spacial correlation between 911 call density and hospital locations
+
+What this **means:** The higher the 911 call density, the more likely there is to have a hospital nearby
+
+**Disclaimer:** Healthcare locations vary based on a large set of factors such as environment, demand, population, proximity, competition, government policies, and costs as in other hospital ranking problems as stated in the article *Hospital Location Selection: A Systematic Literature Review on Methodologies and Applications*.
+
+The research aims to focus on the demand sector and blueprinting the trends and correlations of hospital locations based on 911 calls in the Wayne County, MI, area. Essentially, the data should statistically forecast areas in which hospitals would be beneficial to the public based on factors such as demand, proximity, and population.
+
+```{r packages, include=FALSE}
+# load libraries
+library(tidyverse)
+library(ggplot2)
+library(sf)
+library(htmltools)
+library(leaflet)
+library(ggpattern)
+library(ks)        # For kernel density estimation
+library(raster)    # For spatial raster operations
+library(exactextractr) # For fast raster extraction
+library(kableExtra)
+
+```
+
+```{r load data, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+knitr::opts_chunk$set(echo = TRUE)
+# load data
+
+# top 50 911 call data
+yearly_stats <- read_csv("datasets/yearlyStats.csv")
+top_50_hotspot_locations <- read_csv("datasets/911CallLocations.csv")
+top_50_hotspot_call_types <- read_csv("datasets/mostCallTypesLocations.csv")
+top_50_shooting_hotspots <- read_csv("datasets/mostShootingLocations.csv")
+
+# map data
+zipcode_areas <- read_csv("datasets/zipcode_Areas.csv")
+zipcode_counts <- read_csv("datasets/zipcodeCounts.csv")
+hospital_locations <- read_csv("datasets/hospitalLocations.csv")
+
+# census data
+census_2022 <- read_csv("datasets/2022_census.csv")
+census_2023 <- read_csv("datasets/2023_census.csv")
+
+# geocoded locations
+geocoded_top_50_hotspot_locations <- read_csv(
+  "datasets/911CallLocations_geocoded_from_file.csv")
+geocoded_top_50_hotspot_call_types <- read_csv(
+  "datasets/mostCallTypesLocations_geocoded_from_file.csv")
+geocoded_top_50_shooting_hotspots <- read_csv(
+  "datasets/mostShootingLocations_geocoded_from_file.csv")
+
+geocoded_hospital_locations <- read_csv(
+  "datasets/hospitalLocationsGeocoded.csv",
+  col_types = cols(CCN = col_character())
+)
+geocoded_additional_hospital_locations <- read_csv(
+  "datasets/additional_hospital_locations_geocoded.csv",
+  col_types = cols(CCN = col_character())
+)
+
+geocoded_zipcode_counts <- read_csv(
+  "datasets/zipcodeCountsGeocoded.csv")
+geocoded_zipcode_areas <- read_csv(
+  "datasets/zipcode_Areas_geocoded.csv")
+
+```
+
+
+```{r clean data, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# cleaning all NAs
+hospitals_clean <- geocoded_hospital_locations %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+
+calls_clean <- geocoded_top_50_hotspot_locations %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+
+shootings_clean <- geocoded_top_50_shooting_hotspots %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+
+zipcode_areas_clean <- geocoded_zipcode_areas %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+
+# cleaning cities
+wayne_county_cities <- c(
+  "DETROIT", "DEARBORN", "LIVONIA",
+  "GARDEN CITY", "GROSSE POINTE"
+)
+
+hospitals_wayne_county <- hospitals_clean %>%
+  filter(toupper(City) %in% toupper(wayne_county_cities))
+
+hospitals_sf <- st_as_sf(hospitals_wayne_county,
+                         coords = c("longitude", "latitude"),
+                         crs = 4326) # CRS 4326 is standard for lat/long
+
+```
+
+```{r sf maker, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# putting everything in format to make maps
+
+additional_hospitals_sf <- st_as_sf(geocoded_additional_hospital_locations, 
+                         coords = c("longitude", "latitude"), 
+                         crs = 4326)
+all_hospitals_sf <- bind_rows(hospitals_sf, additional_hospitals_sf)
+
+calls_sf <- st_as_sf(calls_clean, 
+                     coords = c("longitude", "latitude"), 
+                     crs = 4326)
+shootings_sf <- st_as_sf(shootings_clean, 
+                         coords = c("longitude", "latitude"), 
+                         crs = 4326)
+zip_centroids_sf <- st_as_sf(zipcode_areas_clean, 
+                         coords = c("longitude", "latitude"), 
+                         crs = 4326)
+hospitals_sf <- st_as_sf(hospitals_wayne_county,
+                         coords = c("longitude", "latitude"),
+                         crs = 4326) # CRS 4326 is standard for lat/long
+# Create top 4 shootings SF object
+top4_shootings_sf <- shootings_sf %>%
+  arrange(desc(Count)) %>%
+  head(4)
+```
+
+```{r prehist setup, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# hist setup
+top10_calls <- head(arrange(calls_clean, desc(Count)), 10) %>%
+  mutate(Type = "General Calls")
+
+top4_shootings <- head(arrange(shootings_clean, desc(Count)), 4) %>%
+  mutate(Type = "Shooting Calls")
+
+combined_data <- bind_rows(top10_calls, top4_shootings)
+```
+
+# Top 10 Most Dangerous Locations
+## In Relation To Top 4 Shooting Locations
+
+```{r hist, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+ggplot(combined_data, aes(x = reorder(Location, Count), y = Count)) +
+  geom_col_pattern(
+    aes(pattern_fill = Type),
+    pattern = 'gradient',
+    pattern_fill = c(rep("#8FC7A1", 10), rep("#A8ECFF", 4)),
+    pattern_fill2 = c(rep("#CEFFA8", 10), rep("#A1C1FF", 4)),
+    pattern_orientation = "horizontal",
+    fill = "white",  # Not visible since pattern covers it
+    color = "white", 
+    pattern_alpha = 0.9,
+    pattern_scale = 0.5
+  ) +
+  coord_flip() +
+  labs(title = "Top 10 Locations: Calls vs Shootings",
+       subtitle = "Comparison of Highest Volume Locations",
+       x = "Location", 
+       y = "Call Count") +
+  scale_y_continuous(labels = scales::comma, 
+                     expand = expansion(mult = c(0, 0.1))) +
+  theme(
+    text = element_text(family = "sans"),
+    axis.text.x = element_text(angle = 0, size = 8, color = "black"),
+    axis.text.y = element_text(angle = 0, size = 8, color = "black", hjust = 1),
+    axis.title = element_text(size = 10, face = "bold"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, margin = margin(b = 15)),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 9),
+    panel.grid.major.x = element_line(color = "grey90"),
+    panel.grid.minor.x = element_blank(),
+    axis.line = element_line(color = "black"),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  geom_text(aes(label = scales::comma(Count)), 
+            hjust = -0.1, 
+            size = 3, 
+            color = "#333333",
+            fontface = "bold") +
+  guides(pattern_fill = "none")  # Hide pattern legend since we're using solid colors
+```
+
+The graph illustrates the relationship between 911 calls and highlights significant hotspot locations. Four major intersections can be listed as the most "dangerous" due to their volume of calls and volume of shooting related calls.
+
+1. **Leisure St & W Outer Dr:**
+
+    - Total: 5186
+  
+    - Shooting: 1,069
+
+2. **Leisure St & W Outer Dr:**
+
+    - Total: 4455
+  
+    - Shooting: 699
+  
+3. **Leisure St & W Outer Dr:**
+
+    - Total: 5616
+  
+    - Shooting: 675
+
+4. **Leisure St & W Outer Dr:**
+
+    - Total: 3834
+  
+    - Shooting: 334
+  
+  
+**Leisure St & W Outer Dr** has records of **5000+** calls, with **1000+** of them being related to shootings, marking it the most dangerous of them all. **Grand Blvd & Lincoln St** does also have **5000+** calls, however **Moross Rd & Northdeuft Blvd** takes the second place because it has **699** shooting calls. **Mac Ave & Beaubien St** is the safest street out of these four locations with an outstanding number of **334** shooting related calls.
+
+```{r map setup, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+birth_colors <- scales::hue_pal()(9)
+call_palette <- colorNumeric(
+  palette = birth_colors,
+  domain = calls_sf$Count,
+  na.color = "#808080"
+)
+
+star_icon <- makeIcon(
+  iconUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='yellow'%3E%3Cpolygon points='12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26 12,2'/%3E%3C/svg%3E",
+  iconWidth = 24,
+  iconHeight = 24
+)
+
+min_count <- min(calls_sf$Count, na.rm = TRUE)
+max_count <- max(calls_sf$Count, na.rm = TRUE)
+
+hospital_icon <- makeIcon(
+  iconUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='red'/%3E%3Cpath d='M12 6V18M6 12H18' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E",
+  iconWidth = 24,
+  iconHeight = 24
+)
+
+min_shooting <- min(shootings_sf$Count, na.rm = TRUE)
+max_shooting <- max(shootings_sf$Count, na.rm = TRUE)
+
+# Create shooting palette (using same birth_colors as calls)
+shooting_palette <- colorNumeric(
+  palette = birth_colors,
+  domain = shootings_sf$Count,
+  na.color = "#808080"
+)
+
+```
+
+# Hospital Placements Geolocated
+
+### 911 Call Hotspots in Relation to Hospital Locations
+
+```{r call v hospitals, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addMarkers(
+    data = hospitals_sf,
+    icon = hospital_icon,
+    options = markerOptions(opacity = 0.7, fillOpacity = 0.7, zIndexOffset = 100),
+    popup = ~paste0("<b>Hospital:</b> ", `Hospital Name`, "<br>",
+                    "<b>Type:</b> ", `Hospital Type`, "<br>",
+                    "<b>City:</b> ", City, "<br>",
+                    "<b>Zip Code:</b> ", `Zip Code`)
+  ) %>%
+  addCircleMarkers(
+    data = calls_sf,
+    radius = ~ 5 + 25 * (Count - min_count) / (max_count - min_count),
+    color = ~call_palette(Count),
+    fillOpacity = 0.7,
+    stroke = TRUE,
+    weight = 1,
+    opacity = 0.8,
+    options = pathOptions(zIndexOffset = 200),  # Lower than stars
+    popup = ~paste0("<b>Calls Hotspot:</b> ", Location, "<br>",
+                    "<b>Call Count:</b> ", Count)
+  ) %>%
+  addMarkers(
+    data = top4_shootings_sf,
+    icon = star_icon,
+    options = markerOptions(zIndexOffset = 1000),  # Highest z-index
+    popup = ~paste0("<b>TOP SHOOTING HOTSPOT:</b> ", Location, "<br>",
+                    "<b>Shooting Calls:</b> ", Count)
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = "yellow",
+    labels = "Top 4 Shooting Hotspots",
+    title = "",
+    opacity = 0.9
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = "red",
+    labels = "Hospital Locations",
+    title = "Map Features",
+    opacity = 0.9
+  ) %>%
+   addLegend(
+    position = "bottomright",
+    pal = call_palette,
+    values = calls_sf$Count,
+    title = "Call Density",
+    opacity = 0.9,
+    labFormat = labelFormat(suffix = " calls")
+  ) %>%
+  addScaleBar(position = "bottomleft") %>%
+  addControl(
+    html = "<div style='background: white; padding: 5px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
+            <h4 style='margin:0; font-weight:bold;'>Hospital Locations vs 911 Call Hotspots</h4>
+            <p style='margin:0; font-size:12px;'>Yellow stars mark top 4 shooting locations</p>
+            </div>",
+    position = "topright"
+  )
+```
+
+### Shooting Hotspots in Relation to Hospital Locations
+
+```{r shootings v hospitals, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  # Hospital locations (bottom layer)
+  addMarkers(
+    data = hospitals_sf,
+    icon = hospital_icon,
+    options = markerOptions(opacity = 0.7, fillOpacity = 0.7, zIndexOffset = 200),
+    popup = ~paste0("<b>Hospital:</b> ", `Hospital Name`, "<br>",
+                    "<b>Type:</b> ", `Hospital Type`, "<br>",
+                    "<b>City:</b> ", City, "<br>",
+                    "<b>Zip Code:</b> ", `Zip Code`)
+  ) %>%
+  # Shooting hotspots (middle layer)
+  addCircleMarkers(
+    data = shootings_sf,
+    radius = ~sqrt(Count) * 0.9,
+    color = ~shooting_palette(Count),
+    fillOpacity = 0.6,
+    stroke = TRUE,
+    weight = 1,
+    opacity = 0.8,
+    options = pathOptions(zIndexOffset = 100),  # Middle z-index
+    popup = ~paste0("<b>Shooting Hotspot:</b> ", Location, "<br>",
+                    "<b>Call Count:</b> ", Count)
+  ) %>%
+  # Top 4 shooting locations (TOP LAYER)
+  addMarkers(
+    data = top4_shootings_sf,
+    icon = star_icon,
+    options = markerOptions(zIndexOffset = 1000),  # Highest z-index
+    popup = ~paste0("<b>TOP SHOOTING HOTSPOT:</b> ", Location, "<br>",
+                    "<b>Shooting Calls:</b> ", Count)
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = "yellow",
+    labels = "Top 4 Shooting Hotspots",
+    title = "",
+    opacity = 0.9
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = "red",
+    labels = "Hospital Locations",
+    title = "Map Features",
+    opacity = 0.9
+  ) %>%
+  # Shooting density legend
+  addLegend(
+    position = "bottomright",
+    pal = shooting_palette,
+    values = shootings_sf$Count,
+    title = "Shooting Call Density",
+    opacity = 0.9,
+    labFormat = labelFormat(suffix = " calls")
+  ) %>%
+  # Hospital legend (using red to match icon)
+  # Shooting star legend
+  addScaleBar(position = "bottomleft") %>%
+  # Add styled title
+  addControl(
+    html = "<div style='background: white; padding: 5px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
+            <h4 style='margin:0;'>Hospital Locations vs Shooting Hotspots</h4>
+            </div>",
+    position = "topright"
+  )
+```
+
+Both maps indicate similar prospects: **there is a potential correlation between hospital locations and 911 call hotspots-specifically** ***shooting hotspots.***
+
+**W Grand Blvd & Lincoln St**, **Lesure St & W Outer Dr**, **Moross Rd & Northdeuft Blvd**,  and **Mack Ave & Beaubien St** are prominent locations which home various hospitals due to sheer demand and efficient government spending. We can also see locations such as **Warwick St & Plymouth Rd** with **98** shooting distress calls and **Chapel St & W McNichols Rd** with **108** shooting distress calls, but no prominent hospital locations nearby. This may be due to other underlying factors such as environment, population, government policies, and costs. 
+
+Demand, however, is highly prominent in this areas due to their volume of 911 shooting calls. Although the density is not as high as those in the top 4 shooting locations, a hospital in between these two areas that include HVIPs could reduce crime rates as a whole. The Caught in the Crossfire program, one of the first program to use HVIPs, found that its participants were "70 percent less likely to be arrested and 60 percent less likely to have criminal involvement than a control group. Additionally, the study revealed that the program saved hospitals up to $1.5 million annually," (Healing-Communities-In-Chrisis). For the Wayne County community, it could lower the average crime rate exponentially by giving young ones exposure to resourceful educational programs, breaking generational high crime rates, while simultaneously saving millions in government funding. 
+
+# Proposal for More Funding Towards Programs For Wayne County
+
+```{r yearly stats table, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# Create the knitr table
+knitr::kable(yearly_stats,
+             caption = "Summary Statistics for 911 Calls (2018-2024)",
+             digits = 2)
+```
+
+
+```{r yearly stats, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# Filter out 2025 and reshape to long format
+yearly_stats_long <- yearly_stats %>%
+  filter(year != 2025) %>%  # Remove 2025 data
+  pivot_longer(
+    cols = -year,
+    names_to = "Incident_Type",
+    values_to = "Count"
+  ) %>%
+  mutate(Incident_Type = case_when(
+    Incident_Type == "shots_fired" ~ "Shots Fired",
+    Incident_Type == "assault_battery" ~ "Assault/Battery",
+    TRUE ~ Incident_Type
+  ))
+
+# Create the double line graph (without 2025 data)
+ggplot(yearly_stats_long, aes(x = year, y = Count, color = Incident_Type)) +
+  geom_line(linewidth = 1.5, aes(linetype = Incident_Type)) +
+  geom_point(size = 3, shape = 21, fill = "white", stroke = 1.2) +
+  scale_color_manual(values = c("Shots Fired" = "#A1C1FF", 
+                               "Assault/Battery" = "#8FC7A1")) +
+  scale_linetype_manual(values = c("Shots Fired" = "solid", 
+                                  "Assault/Battery" = "dashed")) +
+  labs(
+    title = "Yearly Incident Trends: 2018-2024",
+    subtitle = "Shots Fired vs Assault/Battery in Detroit",
+    x = "Year",
+    y = "Number of Incidents"
+  ) +
+  scale_y_continuous(labels = scales::comma, expand = expansion(mult = c(0.05, 0.1))) +
+  scale_x_continuous(breaks = seq(min(yearly_stats_long$year), max(yearly_stats_long$year), by = 1)) +
+  theme(
+    text = element_text(family = "sans"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, margin = margin(b = 15)),
+    axis.title = element_text(face = "bold", size = 12),
+    axis.text = element_text(size = 10, color = "black"),
+    legend.position = "bottom",
+    legend.title = element_blank(),  # Remove legend title
+    legend.text = element_text(size = 10),
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  guides(color = guide_legend(), linetype = guide_legend())
+```
+
+
+```{r yearly linear reg, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+ggplot(yearly_stats_long, aes(x = year, y = Count)) +
+  # Add data points
+  geom_point(aes(color = Incident_Type), size = 3) +
+  
+  # Add separate regression lines for before and after 2021
+  geom_smooth(data = filter(yearly_stats_long, year < 2021),
+              method = "lm", se = FALSE, linetype = "dashed",
+              aes(color = Incident_Type)) +
+  geom_smooth(data = filter(yearly_stats_long, year >= 2021),
+              method = "lm", se = FALSE, linetype = "dashed",
+              aes(color = Incident_Type)) +
+  
+  # Add a vertical line at the year 2021 to mark the change
+  geom_vline(xintercept = 2021, linetype = "dotted", color = "black", linewidth = 1) +
+  
+  # Split the graph into two panels, one for each incident type
+  facet_wrap(~Incident_Type, scales = "free_y") +
+  
+  # Add titles and labels
+  labs(
+    title = "Trends in 911 Calls Before and After 2021",
+    subtitle = "Linear regression highlights changes in trend",
+    x = "Year",
+    y = "Number of Calls",
+    color = "Incident Type"
+  ) +
+  
+  # Customize the theme for a clean look
+  scale_x_continuous(breaks = unique(yearly_stats_long$year)) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    legend.position = "bottom"
+  )
+```
+
+
+```{r yearly percent stats, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# Recalculate percentage changes
+analysis_years <- yearly_stats %>%
+  filter(year != 2025) %>%
+  arrange(year)
+
+# Calculate changes since 2021
+shots_2021 <- analysis_years$shots_fired[analysis_years$year == 2021]
+shots_2024 <- analysis_years$shots_fired[analysis_years$year == 2024]
+shots_pct_change_since_2021 <- ((shots_2024 - shots_2021) / shots_2021) * 100
+
+assault_2021 <- analysis_years$assault_battery[analysis_years$year == 2021]
+assault_2024 <- analysis_years$assault_battery[analysis_years$year == 2024]
+assault_pct_change_since_2021 <- ((assault_2024 - assault_2021) / assault_2021) * 100
+
+# Calculate total changes (2018-2024)
+shots_2018 <- analysis_years$shots_fired[analysis_years$year == 2018]
+shots_pct_change_total <- ((shots_2024 - shots_2018) / shots_2018) * 100
+
+assault_2018 <- analysis_years$assault_battery[analysis_years$year == 2018]
+assault_pct_change_total <- ((assault_2024 - assault_2018) / assault_2018) * 100
+
+# Create table with trend icons
+trend_table <- data.frame(
+  Metric = c("Shots Fired", "Assault/Battery"),
+  `Since 2021` = c(
+    sprintf("%s %.1f%%", 
+            ifelse(shots_pct_change_since_2021 < 0, "▼", "▲"), 
+            abs(shots_pct_change_since_2021)),
+    sprintf("%s %.1f%%", 
+            ifelse(assault_pct_change_since_2021 < 0, "▼", "▲"), 
+            abs(assault_pct_change_since_2021))
+  ),
+  `2018-2024 Change` = c(
+    sprintf("%s %.1f%%", 
+            ifelse(shots_pct_change_total < 0, "▼", "▲"), 
+            abs(shots_pct_change_total)),
+    sprintf("%s %.1f%%", 
+            ifelse(assault_pct_change_total < 0, "▼", "▲"), 
+            abs(assault_pct_change_total))
+  )
+)
+
+# Create styled table with color coding
+knitr::kable(trend_table, 
+             align = c('l', 'c', 'c'),
+             col.names = c("Metric", "Change Since 2021", "Total Change (2018-2024)"),
+             caption = "Trend Analysis of Incident Types") %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::row_spec(0, bold = TRUE, background = "#2c3e50", color = "white") %>%
+  kableExtra::column_spec(1, bold = TRUE) %>%
+  kableExtra::column_spec(2, color = ifelse(c(shots_pct_change_since_2021 < 0, 
+                                            assault_pct_change_since_2021 < 0), 
+                          "green", "red")) %>%
+  kableExtra::column_spec(3, color = ifelse(c(shots_pct_change_total < 0, 
+                                            assault_pct_change_total < 0), 
+                          "green", "red")) %>%
+  kableExtra::footnote(
+    general = "Shots Fired has seen decreases while Assault/Battery has increased significantly",
+    general_title = "Legend: ▼ = Decrease, ▲ = Increase"
+  )
+```
+
+In 2021, Gretchen Whitmer proposed $30 million dollars in funding to programs such as HVIPs, Mental Health, Substance Abuse and Sexual Assault Services, Wraparound Services for High-Risk Youth and Young Adults, and others. The proposal claimed to "reduce violence by providing grant recipients with access to technical assistance and training, evaluation support, and coordination," (Michigan.gov). 
+
+Shooting distress calls shot down by 44.5% after the implementation, ensuring that the previous efforts had been successful. However, assault and battery distress calls increased steadily by 4.3%, despite the generous funding. Although that may not seem like a lot, it resulted in a total of 497.5% increase from 2,261 in 2018 to 13,509 in 2024.
+
+While the existing programs have been successful in reducing gun violence, new funding and strategies should be adapted to address other forms of violence, like assault and battery.
+
+
+# References
+
+### **Datasets**
+- **Detroit Open Portal:** Provided substantial data regarding 911 calls and locations
+    - 2018: https://data.detroitmi.gov/datasets/e9243485b5254b4d9e177bc1a9e0eed4_0/explore?location=42.204235%2C-83.335395%2C8.42&showTable=true
+    - 2019: https://data.detroitmi.gov/datasets/b480271e68094289905a9b07e470b2d1_0/explore?location=42.204235%2C-83.335395%2C8.42&showTable=true
+    - 2020: https://data.detroitmi.gov/datasets/7f32a6176ca14eb3b1c43241fdc953ca_0/explore?location=42.204235%2C-83.335395%2C8.42&showTable=true
+    - 2021: https://data.detroitmi.gov/datasets/bb279dd59fa9414a97185e1a2d2db200_0/explore?showTable=true
+    - 2022: https://data.detroitmi.gov/datasets/23bef6250e904113be5954807c91e739_0/explore?showTable=true
+    - 2023: https://data.detroitmi.gov/datasets/13fb64ee36524809bd9a4a03e30151a2_0/explore?showTable=true
+    - 2024: https://data.detroitmi.gov/datasets/cb16e22c60644a68b1eca5a6c3d67088_0/explore?showTable=true
+    - 2025: http://data.detroitmi.gov/datasets/a1c24156ffe146b4964ed128c5e1f12f_0/explore?showTable=true
+- **United States Census Bureau:** Provided five year population estimates
+    - 2018-2022: https://data.census.gov/table/ACSDP5Y2022.DP05?q=population+of+wayne+county+michigan+DP05&t=Populations+and+People
+    - 2019-2023: https://data.census.gov/table/ACSDP5Y2023.DP05?q=population+of+wayne+county+michigan+DP05&t=Populations+and+People
+
+### **Literature**
+- **Wiley Online Library:** Provided information regarding hospital location urban planning
+    - https://onlinelibrary.wiley.com/doi/10.1155/2021/6682958#:~:text=This%20problem%20depends%20on%20many,problems%20%5B4%E2%80%938%5D.
+- https://www.michigan.gov/whitmer/news/press-releases/2021/11/02/governor-whitmer-proposes-30-million-investment-to-fund-violence-prevention-and-reduction-initiativ
+- https://www.uppermichiganssource.com/2024/02/07/gov-whitmer-discuss-2025-michigan-state-budget/
+
+    
+## appendix
+
+### Top 50 mean median standard deviation table
+
+```{r top 50 mmsd, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# top 50 mean median standard deviation table
+mean_50 <- mean(geocoded_top_50_hotspot_locations$Count, na.rm = TRUE)
+median_50 <- median(geocoded_top_50_hotspot_locations$Count, na.rm = TRUE)
+sd_50 <- sd(geocoded_top_50_hotspot_locations$Count, na.rm = TRUE)
+
+stats_df_50 <- tibble(
+  Statistic = c("Mean", "Median", "Standard Deviation"),
+  Value = c(mean_50, median_50, sd_50)
+)
+
+knitr::kable(stats_df_50, caption = "Summary Statistics for Top 50 Locations")
+```
+    
+### Top 10 mean median standard deviation table
+
+```{r top 10 mmsd, comment="", echo=FALSE, warning=FALSE, message=FALSE,fig.align="center"}
+# top 10 mean median standard deviation table
+top_10_calls <- geocoded_top_50_hotspot_locations %>%
+  arrange(desc(Count)) %>%
+  head(10)
+
+mean_10 <- mean(top_10_calls$Count, na.rm = TRUE)
+median_10 <- median(top_10_calls$Count, na.rm = TRUE)
+sd_10 <- sd(top_10_calls$Count, na.rm = TRUE)
+
+stats_df_10 <- tibble(
+  Statistic = c("Mean", "Median", "Standard Deviation"),
+  Value = c(mean_10, median_10, sd_10)
+)
+
+knitr::kable(stats_df_10, caption = "Summary Statistics for Top 10 Locations")
