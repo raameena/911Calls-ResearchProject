@@ -1,92 +1,122 @@
 # Detroit 911 Calls & Hospital Proximity Research Project
 
-A comprehensive data pipeline and spatial analysis of Detroit 911 call records (2018–2025), exploring the statistical relationship between 911 call density and proximity to hospitals in Wayne County, MI. The project transforms over 2 million raw calls into clean, analysis-ready tables and visualizations, aiming to inform urban healthcare planning.
+A comprehensive analysis of Detroit 911 call records (2018–2025) exploring the relationship between emergency call patterns and hospital locations in Wayne County, MI. This research reveals critical insights about violence patterns and the effectiveness of intervention programs.
 
 ---
 
-## ♡ Research Question & Hypotheses
+## ♡ Research Question
 
 **Main Question:**  
-Is there a statistical spatial correlation between 911 call density (2018–2025) and proximity to hospitals in Wayne County?
+Is there a connection between where 911 calls happen most frequently and where hospitals are located in Wayne County?
 
-- **Null Hypothesis (H₀):**  
-  There is no statistically significant spatial correlation between hospital locations and 911 call density.
-
-- **Alternative Hypothesis (H₁):**  
-  There is a positive, statistically significant spatial correlation between 911 call density and hospital locations (i.e., higher 911 call density areas are more likely to have a hospital nearby).
-
-- **Additional Consideration:**  
-  Population trends by year will be included to contextualize demand.
+**Hypotheses:**
+- **Null Hypothesis:** There is no significant relationship between 911 call hotspots and hospital locations
+- **Alternative Hypothesis:** Areas with more 911 calls are more likely to have hospitals nearby
 
 ---
 
-## ♡ Research Workflow & TODOs
+## ♡ Key Findings
 
-- [x] **Formulate Hypotheses & Research Question**
-- [x] **Literature Review**  
-  - Key factors in hospital location: environment, demand, population, proximity, competition, government policies, costs ([Wiley article](https://onlinelibrary.wiley.com/doi/10.1155/2021/6682958#:~:text=This%20problem%20depends%20on%20many,problems%20%5B4%E2%80%938%5D.))
-  - This project focuses on the *demand* sector, using 911 call data as a proxy.
-- [ ] **Data Cleaning**  
-  - Prepare and validate 911 call and population datasets.
-  - Map Wayne County by zip code ([Detroit ZCTA map](https://data.detroitmi.gov/datasets/detroitmi::city-of-detroit-zip-code-tabulation-areas-zctas/explore?location=42.352506%2C-83.099035%2C10.58&showTable=true))
-- [ ] **Statistical Analysis & Visualization**  
-  - Create a heatmap of 911 call density by zip code.
-  - Overlay hospital locations.
-  - Highlight hotspot streets.
-  - Annotate with average population data.
-- [ ] **Results & Interpretation**
-- [ ] **Final Report**
+### Most Dangerous Locations Identified
+- **Leisure St & W Outer Dr:** 5,000+ total calls with 1,000+ shooting-related calls - the most dangerous location
+- **Grand Blvd & Lincoln St:** 5,000+ total calls
+- **Moross Rd & Northdeuft Blvd:** Second highest with 699 shooting calls
+- **Mac Ave & Beaubien St:** "Safest" of the four with 334 shooting calls
+
+### Critical Discovery: Violence Pattern Shift
+**The data reveals a significant transformation in emergency call patterns:**
+
+- **Shooting Calls:** Decreased by **44.5%** after 2021 HVIPs funding implementation
+- **Assault & Battery Calls:** Increased by **4.3%** annually, resulting in a **497.5% total increase** from 2,261 calls in 2018 to 13,509 calls in 2024
+
+### Hospital Proximity Analysis
+- **High-Call Areas with Hospitals:** Locations like Grand Blvd & Lincoln St have hospitals due to demand and efficient government spending
+- **High-Call Areas without Hospitals:** Warwick St & Plymouth Rd (98 shooting calls) and Chapel St & W McNichols Rd (108 shooting calls) lack nearby hospitals
+- **Potential for Intervention:** Strategic hospital placement between high-call areas could reduce crime rates through HVIPs programs
+
+---
+
+## ♡ Impact & Policy Implications
+
+### Success of Violence Prevention Programs
+**2021 Michigan Funding Initiative:** Governor Gretchen Whitmer's $30 million investment in:
+- Hospital Violence Intervention Programs (HVIPs)
+- Mental Health Services
+- Substance Abuse and Sexual Assault Services
+- Wraparound Services for High-Risk Youth
+
+**Results:** The 44.5% reduction in shooting calls demonstrates these programs work.
+
+### Critical Policy Gap Identified
+**While shooting violence decreased, assault and battery surged:**
+- **497.5% increase** in assault calls over 6 years
+- Current programs successfully address gun violence but miss other violence types
+- Need for expanded intervention strategies beyond just shooting prevention
+
+### Economic Impact
+**HVIPs Cost Savings:** Programs like "Caught in the Crossfire" show:
+- 70% reduction in arrests among participants
+- 60% reduction in criminal involvement
+- $1.5 million annual savings per hospital
+- Potential for exponential crime rate reduction through generational intervention
+
+### Strategic Recommendations
+1. **Expand Funding:** Address assault and battery prevention, not just shootings
+2. **Targeted Hospital Placement:** Build facilities in high-call areas without hospitals
+3. **HVIPs Expansion:** Implement programs in underserved high-violence areas
+4. **Youth Programs:** Focus on breaking generational crime cycles through education
 
 ---
 
 ## ♡ Data Sources
 
-- **911 Calls (2018–2025):**  
-  [Detroit Open Data Portal](https://data.detroitmi.gov/)
-- **Population Estimates:**  
-  [US Census Bureau 5-Year Estimates (2018–2023)](https://data.census.gov/)
-- **Hospital Locations:**  
-  (To be added or described in analysis)
-- **Wayne County Zip Code Map:**  
-  [Detroit ZCTA Map](https://data.detroitmi.gov/datasets/detroitmi::city-of-detroit-zip-code-tabulation-areas-zctas/explore?location=42.352506%2C-83.099035%2C10.58&showTable=true)
+- **911 Calls (2018-2025):** [Detroit Open Data Portal](https://data.detroitmi.gov/)
+  - Over 2 million emergency call records
+- **Population Data:** [US Census Bureau](https://data.census.gov/)
+  - Annual population estimates by zip code
+- **Hospital Locations:** Various healthcare databases
+  - Hospital coordinates across Wayne County
+- **Geographic Boundaries:** [Detroit ZCTA Map](https://data.detroitmi.gov/datasets/detroitmi::city-of-detroit-zip-code-tabulation-areas-zctas/explore?location=42.352506%2C-83.099035%2C10.58&showTable=true)
 
 ---
 
-## ♡ Tech Stack
+## ♡ Process Overview
 
-- **Database:** MySQL 8.0+  
-- **ETL & Data Cleaning:** SQL (modular scripts)  
-- **Analysis & Visualization:** Python (pandas, matplotlib, numpy), R (planned)  
-- **Version Control:** GitHub
+### Data Collection
+- Gathered 2+ million 911 call records from Detroit's open data
+- Collected population data and hospital location information
+- Mapped all data to zip code boundaries for analysis
+
+### Analysis Methods
+- **Spatial Analysis:** Mapped call density and hospital locations
+- **Statistical Testing:** Analyzed correlation between call hotspots and hospital proximity
+- **Pattern Recognition:** Identified recurring call types and locations
+- **Population Normalization:** Adjusted for population differences across areas
+
+### Technology Used
+- **Database:** MySQL for storing and organizing call data
+- **Python:** For data cleaning and geocoding addresses
+- **R Studio:** For creating maps and visualizations
 
 ---
 
-## ♡ Database Architecture & Data Management
+## ♡ Key Deliverables
 
-A robust MySQL database is at the heart of this project, serving as the central hub for all raw and processed 911 call data. This approach ensures data integrity, reproducibility, and scalability as new data is acquired or analyses are expanded.
+### Maps & Visualizations
+- Heatmaps showing 911 call density across Detroit
+- Hospital location overlays on call patterns
+- Interactive dashboards for exploring the data
 
-**Key Features:**
-- **Centralized Staging Table:**  
-  All raw 911 call records (2018–2025) are consolidated into a single `all_calls_staging` table. This table is designed with flexible data types to accommodate inconsistencies and facilitate large-scale imports.
-- **Modular SQL Scripts:**  
-  - `01_schema_definition.sql`: Defines the staging table schema.
-  - `02_data_cleaning_and_enrichment.sql`: Cleans and enriches data (e.g., extracts year, maps codes to descriptions).
-  - `03_data_modeling.sql`: Creates specialized “baby tables” for focused analysis (e.g., top call locations, shooting hotspots).
-  - `04_analysis_queries.sql`: Provides reusable queries for pattern recognition and reporting.
-- **Import Process:**  
-  - Raw CSVs for each year are imported using TablePlus, which streamlines the process and handles schema detection for millions of rows.
-  - The import process is documented in `Data Import:Export Process/data_import_process.md`.
-- **Data Cleaning & Enrichment:**  
-  - After import, SQL scripts standardize, enrich, and transform the data for analysis.
-  - Human-readable columns and derived features are added for clarity.
-- **Export Process:**  
-  - Specialized tables are exported to CSV using SQL’s `SELECT ... INTO OUTFILE` for downstream analysis in Python or R.
-  - Export scripts are found in `Data Import:Export Process/data_export_process.sql`.
-- **Ongoing Data Management:**  
-  - The database is designed for easy re-import and export as new data becomes available, ensuring all analyses are based on a single, authoritative source.
+### Data Products
+- Top 50 call hotspot locations with coordinates
+- Shooting incident concentration areas
+- Call type analysis by geographic area
+- Statistical correlation results
 
-**Why this matters:**  
-This SQL-first approach keeps all data organized, versioned, and ready for both statistical analysis and visualization, making it easy to update, expand, or reproduce results as the project evolves.
+### Reports
+- Comprehensive analysis of findings
+- Policy recommendations for emergency planning
+- Technical methodology documentation
 
 ---
 
@@ -94,52 +124,16 @@ This SQL-first approach keeps all data organized, versioned, and ready for both 
 
 ```text
 911Calls-ResearchProject/
-├── Data Import:Export Process/
-│   ├── Specialized Tables/
-│   │   ├── 911CallLocations.csv
-│   │   ├── mostCallTypesLocations.csv
-│   │   └── mostShootingLocations.csv
-│   ├── data_export_process.sql
-│   └── data_import_process.md
-├── Initial Attempts/
-│   └── initial_sqlite_attempt.sql
+├── Data Import/Export Process/
+│   └── Specialized Tables/
 ├── MySQL/
-│   ├── 01_schema_definition.sql
-│   ├── 02_data_cleaning_and_enrichment.sql
-│   ├── 03_data_modeling.sql
-│   └── 04_analysis_queries.sql
-├── Python Visuals/
-│   ├── 911CallsAnalysis.ipynb
-│   └── Datasets/
-│       ├── 2022FiveYearEstimate.csv
-│       ├── 2023FiveYearEstimate.csv
-│       ├── 911CallLocations.csv
-│       ├── mostCallTypesLocations.csv
-│       └── mostShootingLocations.csv
+│   └── SQL scripts for data processing
+├── Python/
+│   └── Data analysis notebooks
 ├── R/
-│   └── (future R scripts)
+│   └── Visualization and mapping files
 └── README.md
 ```
-
----
-
-## ♡ Key Deliverables
-
-- **Cleaned & Modeled Data:**  
-  - `911CallLocations`: Top 50 911 call hotspots  
-  - `mostShootingLocations`: Top 50 shooting call hotspots  
-  - `mostCallTypesLocations`: Top 50 locations by call type
-- **Python Notebook:**  
-  - Data import, cleaning, and exploratory analysis (`Python Visuals/911CallsAnalysis.ipynb`)
-- **Planned Visualizations:**  
-  - Heatmaps, hospital overlays, population context
-
----
-
-## ♡ Notes
-
-- The project is currently focused on Python (pandas, matplotlib, numpy) for analysis and visualization. R visualizations may be added later.
-- The analysis acknowledges that hospital location is multifactorial; this work isolates the *demand* aspect via 911 call data.
 
 ---
 
